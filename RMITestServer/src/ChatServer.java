@@ -5,6 +5,7 @@ import java.util.*;
 
 public class ChatServer extends UnicastRemoteObject implements ChatInterface {
     private final Map<String, ChatClientInterface> clients = new HashMap<>();
+    private final Map<String, List<String>> groups = new HashMap<>();
 
     protected ChatServer() throws RemoteException {
         super();
@@ -43,6 +44,45 @@ public class ChatServer extends UnicastRemoteObject implements ChatInterface {
             senderClient.receiveMessage("[Private to " + receiver + "] " + message);
         } else {
             senderClient.receiveMessage("❌ User '" + receiver + "' not found.");
+        }
+    }
+
+    public synchronized void createGroup(String groupName, String names) throws RemoteException {
+        String[] nameArr = names.replace("(", "").replace(")", "").split(",");
+        List<String> members = new ArrayList<>();
+
+        for (String n : nameArr) {
+            String trimmed = n.trim();
+            if (clients.containsKey(trimmed)) {
+                members.add(trimmed);
+            }
+        }
+
+        if (members.isEmpty()) return;
+
+        groups.put(groupName, members);
+
+        // Notify group members
+        for (String member : members) {
+            ChatClientInterface c = clients.get(member);
+            if (c != null)
+                c.receiveMessage("👥 You were added to group '" + groupName + "'. Members: " + String.join(", ", members));
+        }
+    }
+
+    public synchronized void sendGroupMessage(String sender, String groupName, String message) throws RemoteException {
+        List<String> members = groups.get(groupName);
+        if (members == null) {
+            ChatClientInterface senderClient = clients.get(sender);
+            if (senderClient != null)
+                senderClient.receiveMessage("❌ Group '" + groupName + "' not found.");
+            return;
+        }
+
+        for (String member : members) {
+            ChatClientInterface c = clients.get(member);
+            if (c != null)
+                c.receiveMessage(sender + " in " + groupName + ": " + message);
         }
     }
 

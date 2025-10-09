@@ -1,5 +1,6 @@
 import java.rmi.*;
 import java.rmi.server.*;
+import java.util.List;
 import java.util.Scanner;
 
 public class ChatClient extends UnicastRemoteObject implements ChatClientInterface {
@@ -50,10 +51,34 @@ public class ChatClient extends UnicastRemoteObject implements ChatClientInterfa
                     String receiver = parts[1];
                     String message = parts[2];
                     server.sendPrivate(name, receiver, message);
+                } else if (msg.equalsIgnoreCase("/users")) {
+                    List<String> users = server.getUsers();
+                    System.out.println("👥 Active users: " + String.join(", ", users));
+                } else if (msg.toLowerCase().startsWith("/group ")) {
+                    // /group GroupName (Tom, Jerry, Alice)
+                    String[] parts = msg.split(" ", 3);
+                    if (parts.length < 3) {
+                        System.out.println("⚠️ Usage: /group <groupName> (<user1>,<user2>,...)");
+                        continue;
+                    }
+                    String groupName = parts[1];
+                    String members = parts[2];
+                    server.createGroup(groupName, members);
+                } else if (msg.toLowerCase().startsWith("/gmsg ")) {
+                    // /gmsg GroupName Message
+                    String[] parts = msg.split(" ", 3);
+                    if (parts.length < 3) {
+                        System.out.println("⚠️ Usage: /gmsg <groupName> <message>");
+                        continue;
+                    }
+                    String groupName = parts[1];
+                    String message = parts[2];
+                    server.sendGroupMessage(name, groupName, message);
                 } else {
                     // Normal broadcast message
                     server.broadcast(name, msg);
                 }
+
             }
 
             System.out.println("👋 Disconnected.");
