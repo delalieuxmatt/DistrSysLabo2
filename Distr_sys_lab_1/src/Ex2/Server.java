@@ -1,112 +1,78 @@
 package Ex2;
 
-import java.io.*;
-import java.util.*;
-import java.net.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public class Server {
+    private static final int PORT_NUMBER = 12345;
+    private static final Set<ClientHandler> clients = Collections.synchronizedSet(new HashSet<>());
+    private static final ConcurrentHashMap<String, ClientHandler> clientHandlerMap = new ConcurrentHashMap<>();
 
-    private static final Set<String> usernames = new HashSet<>();
-    private static final Set<ClientHandler> clients = new HashSet<>();
-    private static final Set<PrintWriter> writers = new HashSet<>();
-    private static final int portNumber = 12345;
-    private static final HashMap<String, PrintWriter> onlineWriters = new HashMap<>();
-    private static final HashMap<String, String> publicChat = new HashMap<>();
-
-
-    public static void main(String[] args) throws IOException {
-
-        try (ServerSocket serverSocket = new ServerSocket(portNumber)) {
-            System.out.println("Server is listening on port " + portNumber);
-
+    public static void main(String[] args) {
+        try (ServerSocket serverSocket = new ServerSocket(PORT_NUMBER)) {
+            System.out.println("Server is listening on port " + PORT_NUMBER);
             while (true) {
-                Socket socket = serverSocket.accept();
-                System.out.println("New client connected");
-                ClientHandler handler = new ClientHandler(socket);
-                new Thread(handler).start();
+                new ClientHandler(serverSocket.accept()).start();
             }
         } catch (IOException e) {
-            System.err.println("Exception caught when trying to listen on port " + portNumber);
-            System.err.println(e.getMessage());
+            System.err.println("Server exception: " + e.getMessage());
         }
     }
 
     static void broadcast(String message, ClientHandler exclude) {
-        for (ClientHandler client : clients) {
-            if (client != exclude) {
-                client.sendMessage(message);
-            }
+        synchronized (clients) {
+            clients.stream()
+                    .filter(client -> client != exclude)
+                    .forEach(client -> client.sendMessage(message));
         }
     }
 
-    static synchronized boolean addUsername(String username) {
-        return usernames.add(username);
-
+    static String getUserListString() {
+        return "USERLIST:" + String.join(",", clientHandlerMap.keySet());
     }
 
-    public static synchronized Set<String > getUsernamesSet() {
-        return usernames;
+    static void broadcastUserList() {
+        broadcast(getUserListString(), null);
     }
 
-    static void printUserList() {
-        StringBuilder sb = new StringBuilder("USERLIST ");
-        for (String username : usernames) {
-            sb.append(username).append(",");
+    static synchronized boolean addClient(String username, ClientHandler handler) {
+        if (username == null || username.trim().isEmpty() || "Global".equalsIgnoreCase(username.trim()) || clientHandlerMap.containsKey(username)) {
+            return false;
         }
-        System.out.println(sb.toString());
-        broadcast(sb.toString(), null);
+        clients.add(handler);
+        clientHandlerMap.put(username, handler);
+        return true;
     }
 
-    static synchronized void removeClient(ClientHandler client) {
-        usernames.remove(client.getUsername());
-        clients.remove(client);
-        broadcast("User left: " + client.getUsername(), null);
-        printUserList();
-    }
-
-    static synchronized void addClient(ClientHandler client) {
-        clients.add(client);
-        printUserList();
-    }
-    static synchronized void addWriter(PrintWriter writer) {
-        writers.add(writer);
-    }
-
-
-    static synchronized Set<String> getUsernames() {
-        return usernames;
-    }
-    public static synchronized HashMap<String, PrintWriter> getOnlineWriters(){
-        return onlineWriters;
-    }
-
-    public synchronized static void addOnlineWriter(String userName, PrintWriter writer){
-        onlineWriters.put(userName, writer);
-        System.out.println(onlineWriters);
-    }
-
-    public synchronized static void removeOnlineWriter(PrintWriter writer, String userName){
-        onlineWriters.remove(userName);
-
-    }
-
-    public synchronized static void privateMessage(String sender, String receiver, String message) {
-        String fullMessage = sender + ": " + message;
-        for (ClientHandler rec : clients) {
-            if (rec.getUsername().equals(receiver)){
-                rec.sendMessage(fullMessage);
-            }
+    static void removeClient(ClientHandler client) {
+        if (client.getUsername() != null && clientHandlerMap.remove(client.getUsername(), client)) {
+            clients.remove(client);
+            broadcast("User " + client.getUsername() + " has left.", null);
+            broadcastUserList();
         }
+    }
 
+    static void privateMessage(String sender, String receiver, String message) {
+        ClientHandler recipientHandler = clientHandlerMap.get(receiver);
+        if (recipientHandler != null) {
+            recipientHandler.sendMessage("PRIVATE:" + sender + ":" + message);
+        }
     }
 }
 
-class ClientHandler implements Runnable {
+class ClientHandler extends Thread {
     private final Socket socket;
     private PrintWriter out;
-    private BufferedReader in;
     private String username;
-    private PrintWriter currentConvo;
 
     ClientHandler(Socket socket) {
         this.socket = socket;
@@ -117,58 +83,64 @@ class ClientHandler implements Runnable {
     }
 
     public void run() {
-        String receiver;
-        try {
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            out = new PrintWriter(socket.getOutputStream(), true);
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+             PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
+            this.out = out;
 
-            // Ask for username
+            // Step 1: Username negotiation loop
             while (true) {
-                out.println("Submit your username:");
-                username = in.readLine();
-                if (username == null) return;
-                username = username.replace("Global:", "");
-                synchronized (Server.class) {
-                    if (Server.addUsername(username)) {
-                        break;
-                    }
-                }
-                out.println("The name you chose is already taken. Please choose another one.");
-            }
-            Server.addOnlineWriter(username, out);
-            Server.addWriter(out);
-            Server.addClient(this);
-            out.println("You joined the global chat " + username);
-            Server.broadcast("User joined: " + username, this);
+                out.println("SUBMITNAME");
+                String name = in.readLine();
+                if (name == null) return;
 
+                if (Server.addClient(name, this)) {
+                    this.username = name;
+                    out.println("NAMEACCEPTED:" + this.username);
+                    break;
+                }
+                out.println("NAMEINUSE");
+            }
+
+            // Step 2: Inform new client and existing clients in the correct order
+            System.out.println("User " + username + " has joined.");
+
+            // Send the full user list ONLY to the newly connected client
+            out.println(Server.getUserListString());
+
+            // Inform all OTHER clients that a new user has joined
+            Server.broadcast("User " + username + " has joined.", this);
+
+            // Broadcast the updated user list to all OTHER clients
+            Server.broadcast(Server.getUserListString(), this);
+
+
+            // Step 3: Main message processing loop
             String message;
             while ((message = in.readLine()) != null) {
-                if (message.startsWith("USERLIST")) {
-                    Server.printUserList();
-                    continue;
+                if (message.startsWith("GLOBAL:")) {
+                    Server.broadcast(username + ": " + message.substring(7), null);
+                } else if (message.startsWith("PRIVATE:")) {
+                    String[] parts = message.substring(8).split(":", 2);
+                    if (parts.length == 2) {
+                        Server.privateMessage(username, parts[0], parts[1]);
+                    }
                 }
-                if (message.startsWith("Global:")) {
-                    message = message.replace("Global:", "");
-                    Server.broadcast(username + ": " + message, this);
-                    continue;
-                }
-                String parts[] = message.split(":", 2);
-                receiver = parts[0];
-                message = parts[1];
-                Server.privateMessage(getUsername(), receiver, message);
             }
         } catch (IOException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("Client " + (username != null ? username : "[unknown]") + " disconnected.");
         } finally {
             Server.removeClient(this);
-            try { socket.close(); } catch (IOException e) {}
+            try {
+                socket.close();
+            } catch (IOException e) {
+                // Ignore
+            }
         }
     }
 
     void sendMessage(String message) {
-        out.println(message);
+        if (out != null) {
+            out.println(message);
+        }
     }
-
-
-
 }
