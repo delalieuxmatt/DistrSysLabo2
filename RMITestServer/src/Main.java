@@ -15,7 +15,8 @@ public class Main {
 
         System.out.println("system is ready");
     }
-    public static void main(String[] args) {
+
+    static void main(String[] args) {
         Main main = new Main();
         main.startServer();
     }
