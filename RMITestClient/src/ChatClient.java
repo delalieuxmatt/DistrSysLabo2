@@ -11,11 +11,12 @@ public class ChatClient extends UnicastRemoteObject implements ChatClientInterfa
         this.server = server;
     }
 
+    // This method is called remotely by the server when a message is received
     public void receiveMessage(String message) throws RemoteException {
         System.out.println(message);
     }
 
-    static void main(String[] args) {
+    public static void main(String[] args) {
         try {
             Scanner sc = new Scanner(System.in);
             ChatInterface server = (ChatInterface) Naming.lookup("rmi://localhost/ChatServer");
@@ -31,10 +32,28 @@ public class ChatClient extends UnicastRemoteObject implements ChatClientInterfa
             }
 
             System.out.println("✅ Connected to chat! Type messages below:");
+            System.out.println("💬 Use /msg <username> <message> for private messages.");
+            System.out.println("💤 Type /quit to disconnect.");
+
             while (true) {
                 String msg = sc.nextLine();
                 if (msg.equalsIgnoreCase("/quit")) break;
-                server.broadcast(name, msg);
+
+                // Detect private message command
+                if (msg.startsWith("/msg ")) {
+                    String[] parts = msg.split(" ", 3);
+                    if (parts.length < 3) {
+                        System.out.println("⚠️ Usage: /msg <username> <message>");
+                        continue;
+                    }
+
+                    String receiver = parts[1];
+                    String message = parts[2];
+                    server.sendPrivate(name, receiver, message);
+                } else {
+                    // Normal broadcast message
+                    server.broadcast(name, msg);
+                }
             }
 
             System.out.println("👋 Disconnected.");

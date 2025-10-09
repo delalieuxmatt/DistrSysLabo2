@@ -34,6 +34,18 @@ public class ChatServer extends UnicastRemoteObject implements ChatInterface {
         return new ArrayList<>(clients.keySet());
     }
 
+    public synchronized void sendPrivate(String sender, String receiver, String message) throws RemoteException {
+        ChatClientInterface receiverClient = clients.get(receiver);
+        ChatClientInterface senderClient = clients.get(sender);
+
+        if (receiverClient != null) {
+            receiverClient.receiveMessage("[Private] " + sender + ": " + message);
+            senderClient.receiveMessage("[Private to " + receiver + "] " + message);
+        } else {
+            senderClient.receiveMessage("❌ User '" + receiver + "' not found.");
+        }
+    }
+
     public static void main(String[] args) {
         try {
             LocateRegistry.createRegistry(1099);
