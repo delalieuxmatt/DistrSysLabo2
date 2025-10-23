@@ -10,10 +10,9 @@ This means:
 * **1st** → encryption algorithm
 * **2nd** → mode of operation
 * **3rd** → padding scheme
-
 ---
 
-### AES Modes
+### Modes
 
 | Mode    | Description                                                                   | IV | Secure?             |
 | ------- | ----------------------------------------------------------------------------- | -- | ------------------- |
@@ -25,6 +24,7 @@ This means:
 | **GCM** | Like CTR but with authentication (integrity check).                           | ✅  | ✅ Yes (recommended) |
 
 ### Padding Schemes
+Padding fills up the last block of plaintext so its length matches the block size required by the cipher (for AES, that’s 16 bytes).
 
 | Padding             | Description                                                            |
 | ------------------- | ---------------------------------------------------------------------- |
