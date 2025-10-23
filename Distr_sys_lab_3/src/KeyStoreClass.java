@@ -24,6 +24,9 @@ public class KeyStoreClass {
         // --- Encrypt a message using Freya's public key ---
         String message = "Hello Freya, this is a secure message!";
         Cipher encryptCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+
+        //De RSA asymmetrische encryptie-algoritme wordt gekozen.
+
         encryptCipher.init(Cipher.ENCRYPT_MODE, freyaPublicKey);
         byte[] encrypted = encryptCipher.doFinal(message.getBytes());
         System.out.println("Encrypted message: " + bytesToHex(encrypted));

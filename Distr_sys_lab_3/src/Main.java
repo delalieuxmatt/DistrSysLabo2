@@ -10,8 +10,6 @@ import java.util.Base64;
 
 void main() throws Exception {
     ex_1();
-
-    ex_2();
 }
 
 
@@ -23,19 +21,22 @@ static class AESEncryption {
         KeyGenerator keyGen = KeyGenerator.getInstance("AES");
         keyGen.init(128);
         SecretKey key = keyGen.generateKey();
+        //AES128
 
-        byte[] iv = new byte[16]; // 16 bytes voor AES
+        //Initialisatie vector (willekeurige niet geheime waarde die zorgt tekst1 + sleutel1 =/= tekst1 + sleutel2
+        byte[] iv = new byte[16]; // 16 bytes voor AES blok grootte 16 bytes
         IvParameterSpec ivSpec = new IvParameterSpec(iv);
 
         // Encryptie
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        cipher.init(Cipher.ENCRYPT_MODE, key, ivSpec);
+        //CBC --> elke blok cijfertekst afhankelijk maakt van voorgaande blokken (XOR met IV of vorige cijferblok)
+        //PKCS5Padding --> laatste gegevensblokken exact blokgrootte van cipher (16B voor AES) bereiken, nodig voor CBC-modus.
+        cipher.init(Cipher.ENCRYPT_MODE, key, ivSpec);//Voert de encryptie uit
         byte[] encrypted = cipher.doFinal(text.getBytes());
 
         System.out.println("Encrypted (Base64): " + Base64.getEncoder().encodeToString(encrypted));
-
         // Decryptie
-        cipher.init(Cipher.DECRYPT_MODE, key, ivSpec);
+        cipher.init(Cipher.DECRYPT_MODE, key, ivSpec);//Voert de decryptie uit
         byte[] decrypted = cipher.doFinal(encrypted);
         System.out.println("Decrypted: " + new String(decrypted));
     }
@@ -78,6 +79,10 @@ void ex_1() throws Exception {
 
     // Encrypt with public key
     Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+
+    //PKCS1Padding voegt willekeurige opvulling toe om de veiligheid te vergroten.
+    //ECB omdat in RSA gegevens in blokken versleutelt die zijn beperkt aan sleutelgrootte
+
     cipher.init(Cipher.ENCRYPT_MODE, publicKey);
     byte[] encryptedData = cipher.doFinal(text.getBytes());
     System.out.println("Encrypted with RSA (Base64): " + Base64.getEncoder().encodeToString(encryptedData));
@@ -94,17 +99,14 @@ void ex_1() throws Exception {
     signature.initSign(privateKey);
     signature.update(bytes2);
     byte[] digitalSignature = signature.sign();
+    //De berekende hash wordt versleuteld met de private sleute
     System.out.println("Digital Signature (Base64): " + Base64.getEncoder().encodeToString(digitalSignature));
 
     // Verify signature with public key
     signature.initVerify(publicKey);
     signature.update(bytes2);
+    //De ontvanger berekent de hash van de ontvangen data (person2 bytes) op dezelfde manier.
     boolean isVerified = signature.verify(digitalSignature);
     System.out.println("Signature verified: " + isVerified);
-}
-
-
-void ex_2() throws Exception {
-
 }
 
