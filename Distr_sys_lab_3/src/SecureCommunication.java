@@ -47,7 +47,7 @@ public class SecureCommunication {
         byte[] encryptedMessage = aesCipher.doFinal(message.getBytes());
 
         // --- 6. Encrypt AES key with Freya’s public key ---
-        Cipher rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        Cipher rsaCipher = Cipher.getInstance("RSA");
         rsaCipher.init(Cipher.ENCRYPT_MODE, freyaPublicKey);
         byte[] encryptedAesKey = rsaCipher.doFinal(aesKey.getEncoded());
 

@@ -73,7 +73,7 @@ void ex_1() throws Exception {
     System.out.println(publicKey);
 
     // Encrypt with public key
-    Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+    Cipher cipher = Cipher.getInstance("RSA");
 
     //PKCS1Padding voegt willekeurige opvulling toe om de veiligheid te vergroten.
     //ECB omdat in RSA gegevens in blokken versleutelt die zijn beperkt aan sleutelgrootte
