@@ -35,7 +35,7 @@ public class SecureCommunication {
 
         // --- 4. Generate AES session key ---
         KeyGenerator keyGen = KeyGenerator.getInstance("AES");
-        keyGen.init(128);
+        keyGen.init(256); // 256 bits for strong security
         SecretKey aesKey = keyGen.generateKey();
 
         byte[] iv = new byte[16]; // can randomize if you wish

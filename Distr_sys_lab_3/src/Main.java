@@ -56,7 +56,7 @@ void ex_1() throws Exception {
     // TripleDES lengths 112, 168 bits
     // Symmetric key encryption
     KeyGenerator keyGen = KeyGenerator.getInstance("AES");
-    keyGen.init(256);
+    keyGen.init(256); // 256 for better security
     SecretKey secretKey = keyGen.generateKey();
     System.out.println("AES Key: " + Arrays.toString(secretKey.getEncoded()));
     String text = "Lorem ipsum dolor sit amet";
@@ -66,7 +66,7 @@ void ex_1() throws Exception {
     // RSA key lengths 1024, 2048, 4096 bits
     // DSA key lengths 1024, 2048 bits --> Way longer than symmetric keys
     KeyPairGenerator keyPairGen = KeyPairGenerator.getInstance("RSA");
-    keyPairGen.initialize(2048);
+    keyPairGen.initialize(4096); // 4096 for better security
     KeyPair keyPair = keyPairGen.generateKeyPair();
     PublicKey publicKey = keyPair.getPublic();
     PrivateKey privateKey = keyPair.getPrivate();
