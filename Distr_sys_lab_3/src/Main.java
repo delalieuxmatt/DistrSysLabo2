@@ -15,13 +15,7 @@ void main() throws Exception {
 
 
 static class AESEncryption {
-    public static void encrypt(String text) throws Exception {
-
-        // Sleutel en IV genereren
-        KeyGenerator keyGen = KeyGenerator.getInstance("AES");
-        keyGen.init(128);
-        SecretKey key = keyGen.generateKey();
-        //AES128
+    public static void encrypt(SecretKey secretKey, String text) throws Exception {
 
         //Initialisatie vector (willekeurige niet geheime waarde die zorgt tekst1 + sleutel1 =/= tekst1 + sleutel2
         byte[] iv = new byte[16]; // 16 bytes voor AES blok grootte 16 bytes
@@ -31,12 +25,12 @@ static class AESEncryption {
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
         //CBC --> elke blok cijfertekst afhankelijk maakt van voorgaande blokken (XOR met IV of vorige cijferblok)
         //PKCS5Padding --> laatste gegevensblokken exact blokgrootte van cipher (16B voor AES) bereiken, nodig voor CBC-modus.
-        cipher.init(Cipher.ENCRYPT_MODE, key, ivSpec);//Voert de encryptie uit
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivSpec);//Voert de encryptie uit
         byte[] encrypted = cipher.doFinal(text.getBytes());
 
         System.out.println("Encrypted (Base64): " + Base64.getEncoder().encodeToString(encrypted));
         // Decryptie
-        cipher.init(Cipher.DECRYPT_MODE, key, ivSpec);//Voert de decryptie uit
+        cipher.init(Cipher.DECRYPT_MODE, secretKey, ivSpec);//Voert de decryptie uit
         byte[] decrypted = cipher.doFinal(encrypted);
         System.out.println("Decrypted: " + new String(decrypted));
     }
@@ -66,7 +60,7 @@ void ex_1() throws Exception {
     SecretKey secretKey = keyGen.generateKey();
     System.out.println("AES Key: " + Arrays.toString(secretKey.getEncoded()));
     String text = "Lorem ipsum dolor sit amet";
-    AESEncryption.encrypt(text);
+    AESEncryption.encrypt(secretKey, text);
 
     // Assymmetric key encryption
     // RSA key lengths 1024, 2048, 4096 bits
@@ -76,6 +70,7 @@ void ex_1() throws Exception {
     KeyPair keyPair = keyPairGen.generateKeyPair();
     PublicKey publicKey = keyPair.getPublic();
     PrivateKey privateKey = keyPair.getPrivate();
+    System.out.println(publicKey);
 
     // Encrypt with public key
     Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
