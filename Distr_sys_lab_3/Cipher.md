@@ -41,4 +41,24 @@ Padding fills up the last block of plaintext so its length matches the block siz
 **Default if not specified:**
 
 `Cipher.getInstance("AES")` → uses **AES/ECB/PKCS5Padding** 
+
+---
+
+### **Symmetric (AES-256) Test**
+
+- **AES Key Generation Time:** 24.9813 ms
+- **AES Encryption Average:** 0.0036 ms (3648.4450 ns)
+- **AES Decryption Average:** 0.0040 ms (3987.4210 ns)
+- ✅ **AES Test Passed (Data verified)**
+
+---
+
+### **Asymmetric (RSA-2048) Test**
+
+- **RSA Key Generation Time:** 273.4660 ms
+- **RSA Encryption Average:** 0.0534 ms (53,369.5530 ns)
+- **RSA Decryption Average:** 0.9456 ms (945,578.7960 ns)
+- ✅ **RSA Test Passed (Data verified)**
+
+
 ---

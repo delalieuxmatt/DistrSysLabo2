@@ -8,23 +8,8 @@ import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
-/**
- * Demonstrates the timing differences between symmetric (AES) and
- * asymmetric (RSA) encryption algorithms.
- *
- * This test measures:
- * 1. Key Generation Time
- * 2. Encryption Time (Average over N iterations)
- * 3. Decryption Time (Average over N iterations)
- *
- * Note: RSA is limited in the amount of data it can encrypt directly
- * (less than its key size). This test uses a small block of data (64 bytes)
- * that both algorithms can handle for a direct comparison of the
- * cryptographic operations.
- */
 public class EncryptionSpeedTest {
 
-    // --- Configuration ---
     private static final int DATA_SIZE_BYTES = 64;     // Data to encrypt (small block)
     private static final int RSA_KEY_SIZE_BITS = 2048;   // Common RSA key size
     private static final int AES_KEY_SIZE_BITS = 256;    // Common AES key size
@@ -124,7 +109,7 @@ public class EncryptionSpeedTest {
         System.out.printf("RSA Key Gen Time:    %.4f ms%n", (keyGenEnd - keyGenStart) / 1_000_000.0);
 
         // 2. Encryption/Decryption (Timed over N iterations)
-        Cipher rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        Cipher rsaCipher = Cipher.getInstance("RSA");
 
         // --- Encryption (with Public Key) ---
         long encryptTotalTime = 0;
